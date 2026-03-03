@@ -5,6 +5,7 @@ from pathlib import Path
 # Allow importing from Backend/
 sys.path.append(str(Path(__file__).resolve().parent.parent / "Backend"))
 
+import traceback
 import streamlit as st
 from app import generate_resume
 
@@ -19,8 +20,6 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
         /* ── PAGE BACKGROUND — Gen-Z gradient ── */
         [data-testid="stAppViewContainer"] {
             background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
@@ -134,16 +133,36 @@ st.markdown(
         .resume {
             background: #ffffff;
             width: 210mm;
-            min-height: 297mm;
+            height: auto;
             margin: 0 auto;
-            padding: 12mm 16mm 14mm 16mm;
-            font-family: 'Arial', sans-serif;
-            font-size: 10pt;
+            padding: 15mm 18mm 18mm 18mm;
+            font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+            font-size: 10.5pt;
             color: #1f1f1f;
-            line-height: 1.4;
+            line-height: 1.45;
             border: 1px solid #d6dbe2;
             box-shadow: 0 6px 32px rgba(0,0,0,0.18);
             box-sizing: border-box;
+            /* subtle dashed line at each A4 page boundary */
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent 0,
+                transparent calc(297mm - 2px),
+                #dce3ed calc(297mm - 2px),
+                #dce3ed 297mm
+            );
+        }
+
+        /* ── Print: proper A4 pages ── */
+        @media print {
+            .resume {
+                width: 210mm;
+                padding: 15mm 18mm 15mm 18mm;
+                box-shadow: none;
+                border: none;
+                background-image: none;
+            }
+            @page { size: A4; margin: 0; }
         }
 
         /* ── Name header ── */
@@ -164,7 +183,7 @@ st.markdown(
             letter-spacing: 2.5px !important;
             text-transform: uppercase !important;
             line-height: 1.1 !important;
-            font-family: 'Calibri', 'Arial', sans-serif !important;
+            font-family: 'Calibri', 'Segoe UI', Arial, sans-serif !important;
         }
 
         /* prevent Streamlit p color bleeding into resume */
@@ -213,17 +232,19 @@ st.markdown(
 
         /* ── Sections ── */
         .section {
-            margin-bottom: 10px;
+            margin-bottom: 11px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
         .section-title {
-            font-size: 8pt;
+            font-size: 8.5pt;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 2px;
             color: #1a3c6e;
             border-bottom: 1.5px solid #1a3c6e;
             padding-bottom: 2px;
-            margin-bottom: 6px;
+            margin-bottom: 7px;
         }
 
         /* ── Summary ── */
@@ -236,12 +257,12 @@ st.markdown(
         /* ── Skills ── */
         .skills-text {
             color: #2a2a2a;
-            font-size: 10pt;
-            line-height: 1.4;
+            font-size: 10.5pt;
+            line-height: 1.45;
         }
 
         /* ── Job entries ── */
-        .job { margin-bottom: 8px; }
+        .job { margin-bottom: 9px; page-break-inside: avoid; break-inside: avoid; }
         .job:last-child { margin-bottom: 0; }
         .job-header {
             display: flex;
@@ -251,11 +272,11 @@ st.markdown(
         }
         .job-title {
             font-weight: 700;
-            font-size: 10pt;
+            font-size: 10.5pt;
             color: #111;
         }
         .job-date {
-            font-size: 9pt;
+            font-size: 9.5pt;
             color: #555;
             white-space: nowrap;
             font-style: normal;
@@ -263,21 +284,21 @@ st.markdown(
         .job-company {
             font-style: italic;
             color: #3d3d3d;
-            margin-bottom: 2px;
-            font-size: 9.5pt;
+            margin-bottom: 3px;
+            font-size: 10pt;
         }
         .job ul {
-            margin: 2px 0 0 0;
-            padding-left: 14px;
+            margin: 3px 0 0 0;
+            padding-left: 15px;
         }
         .job li {
             margin-bottom: 2px;
             color: #222;
-            font-size: 10pt;
+            font-size: 10.5pt;
         }
 
         /* ── Education ── */
-        .edu-entry { margin-bottom: 7px; }
+        .edu-entry { margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
         .edu-entry:last-child { margin-bottom: 0; }
         .edu-header {
             display: flex;
@@ -286,11 +307,11 @@ st.markdown(
         }
         .edu-degree {
             font-weight: 700;
-            font-size: 10pt;
+            font-size: 10.5pt;
             color: #111;
         }
         .edu-date {
-            font-size: 9pt;
+            font-size: 9.5pt;
             color: #555;
             white-space: nowrap;
             flex-shrink: 0;
@@ -305,10 +326,10 @@ st.markdown(
         .edu-school {
             font-style: italic;
             color: #3d3d3d;
-            font-size: 9.5pt;
+            font-size: 10pt;
         }
         .edu-gpa {
-            font-size: 9pt;
+            font-size: 9.5pt;
             color: #1a3c6e;
             font-weight: 600;
             white-space: nowrap;
@@ -317,7 +338,7 @@ st.markdown(
         }
 
         /* ── Projects ── */
-        .proj-entry { margin-bottom: 7px; }
+        .proj-entry { margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid; }
         .proj-entry:last-child { margin-bottom: 0; }
         .proj-header {
             display: flex;
@@ -331,7 +352,7 @@ st.markdown(
         }
         .proj-name {
             font-weight: 700;
-            font-size: 10pt;
+            font-size: 10.5pt;
             color: #111;
         }
         .proj-gh-link {
@@ -352,21 +373,23 @@ st.markdown(
         }
         .proj-gh-link:hover { text-decoration: underline; }
         .proj-date {
-            font-size: 9pt;
+            font-size: 9.5pt;
             color: #555;
             white-space: nowrap;
         }
         .proj-desc {
             color: #2a2a2a;
-            font-size: 10pt;
-            margin-top: 1px;
+            font-size: 10.5pt;
+            margin-top: 2px;
         }
 
         /* ── Certifications ── */
         .cert-entry {
             color: #2a2a2a;
-            font-size: 10pt;
-            margin-bottom: 3px;
+            font-size: 10.5pt;
+            margin-bottom: 4px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
     </style>
     """,
@@ -456,7 +479,9 @@ if submitted:
     elif not experience.strip():
         st.error("Please describe your experience.")
     else:
-        with st.spinner("Generating your resume with AI..."):
+        status = st.status("Generating your resume with AI ✨", expanded=True)
+        status.write("📡 Sending your details to OpenAI...")
+        with st.spinner("This may take 20–60 seconds for detailed inputs..."):
             try:
                 resume_html = generate_resume(
                     name=name.strip(),
@@ -469,6 +494,8 @@ if submitted:
                     projects=projects.strip(),
                     certifications=certifications.strip(),
                 )
+                status.write("✅ Resume generated!")
+                status.update(label="Done!", state="complete", expanded=False)
                 st.success("Resume generated successfully!")
                 st.divider()
 
@@ -488,3 +515,4 @@ if submitted:
 
             except Exception as e:
                 st.error(f"Error generating resume: {e}")
+                st.code(traceback.format_exc(), language="python")

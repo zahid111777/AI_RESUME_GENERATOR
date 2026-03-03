@@ -16,8 +16,8 @@ if not OPENAI_API_KEY:
 llm = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0.7,
-    openai_api_key=OPENAI_API_KEY,
-)
+    openai_api_key=OPENAI_API_KEY,    max_tokens=4096,
+    request_timeout=120,)
 
 # ── Prompt template ──────────────────────────────────────────────────────────
 RESUME_PROMPT = ChatPromptTemplate.from_messages(
