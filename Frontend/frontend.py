@@ -28,128 +28,190 @@ st.markdown(
             width: 210mm;
             min-height: 297mm;
             margin: 0 auto;
-            padding: 18mm 20mm;
+            padding: 16mm 18mm 18mm 18mm;
             font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 11pt;
-            color: #1a1a1a;
-            line-height: 1.5;
-            border: 1px solid #dde1e7;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+            font-size: 10.5pt;
+            color: #1f1f1f;
+            line-height: 1.55;
+            border: 1px solid #d6dbe2;
+            box-shadow: 0 6px 32px rgba(0,0,0,0.11);
             box-sizing: border-box;
         }
 
         /* ── Name header ── */
         .resume-header {
             text-align: center;
-            border-bottom: 3px solid #1a3c6e;
-            padding-bottom: 14px;
-            margin-bottom: 22px;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+            border-bottom: 2.5px solid #1a3c6e;
         }
         .resume-header h1 {
-            font-size: 2.2rem;
+            font-size: 26pt;
             font-weight: 700;
             color: #1a3c6e;
-            margin: 0 0 4px 0;
-            letter-spacing: 1px;
+            margin: 0 0 6px 0;
+            letter-spacing: 2.5px;
             text-transform: uppercase;
-        }
-
-        /* ── Section titles ── */
-        .section { margin-bottom: 20px; }
-        .section-title {
-            font-size: 0.78rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #1a3c6e;
-            border-bottom: 1.5px solid #1a3c6e;
-            padding-bottom: 3px;
-            margin-bottom: 10px;
-        }
-
-        /* ── Summary ── */
-        .section p {
-            margin: 0;
-            color: #333;
-        }
-
-        /* ── Skills ── */
-        .skills-text {
-            color: #222;
-            font-size: 11pt;
-            line-height: 1.6;
-        }
-
-        /* ── Job entries ── */
-        .job { margin-bottom: 16px; }
-        .job-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-        }
-        .job-title {
-            font-weight: 700;
-            font-size: 14.5px;
-            color: #1a1a1a;
-        }
-        .job-date {
-            font-size: 13px;
-            color: #555;
-            white-space: nowrap;
-        }
-        .job-company {
-            font-style: italic;
-            color: #444;
-            margin-bottom: 6px;
-            font-size: 13.5px;
-        }
-        .job ul {
-            margin: 4px 0 0 0;
-            padding-left: 18px;
-        }
-        .job li {
-            margin-bottom: 4px;
-            color: #222;
+            line-height: 1.1;
         }
 
         /* ── Contact bar ── */
         .contact-bar {
             text-align: center;
-            font-size: 13px;
-            color: #444;
-            margin-top: 6px;
+            font-size: 9.5pt;
+            color: #555;
+            margin-top: 4px;
+            letter-spacing: 0.3px;
         }
         .contact-bar a {
             color: #1a3c6e;
             text-decoration: none;
-            margin: 0 10px;
         }
-        .contact-bar span { margin: 0 10px; color: #555; }
+        .contact-bar a:hover { text-decoration: underline; }
+        .contact-bar span { color: #555; }
+        /* dot separator between contact items */
+        .contact-bar > *:not(:last-child)::after {
+            content: " ·";
+            color: #999;
+            margin: 0 6px 0 0;
+        }
 
-        /* ── Education & Project entries ── */
-        .edu-entry, .proj-entry, .cert-entry { margin-bottom: 12px; }
-        .edu-header, .proj-header {
+        /* ── Sections ── */
+        .section {
+            margin-bottom: 14px;
+        }
+        .section-title {
+            font-size: 8.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2.2px;
+            color: #1a3c6e;
+            border-bottom: 1.5px solid #1a3c6e;
+            padding-bottom: 3px;
+            margin-bottom: 8px;
+        }
+
+        /* ── Summary ── */
+        .section p {
+            margin: 0;
+            color: #2a2a2a;
+            text-align: justify;
+        }
+
+        /* ── Skills ── */
+        .skills-text {
+            color: #2a2a2a;
+            font-size: 10.5pt;
+            line-height: 1.6;
+        }
+
+        /* ── Job entries ── */
+        .job { margin-bottom: 12px; }
+        .job:last-child { margin-bottom: 0; }
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1px;
+        }
+        .job-title {
+            font-weight: 700;
+            font-size: 10.5pt;
+            color: #111;
+        }
+        .job-date {
+            font-size: 9.5pt;
+            color: #555;
+            white-space: nowrap;
+            font-style: normal;
+        }
+        .job-company {
+            font-style: italic;
+            color: #3d3d3d;
+            margin-bottom: 4px;
+            font-size: 10pt;
+        }
+        .job ul {
+            margin: 4px 0 0 0;
+            padding-left: 16px;
+        }
+        .job li {
+            margin-bottom: 3px;
+            color: #222;
+            font-size: 10.5pt;
+        }
+
+        /* ── Education ── */
+        .edu-entry { margin-bottom: 10px; }
+        .edu-entry:last-child { margin-bottom: 0; }
+        .edu-header {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
         }
-        .edu-degree, .proj-name {
+        .edu-degree {
             font-weight: 700;
-            font-size: 14px;
-            color: #1a1a1a;
+            font-size: 10.5pt;
+            color: #111;
         }
-        .edu-date, .proj-date {
-            font-size: 13px;
+        .edu-date {
+            font-size: 9.5pt;
             color: #555;
             white-space: nowrap;
         }
         .edu-school {
             font-style: italic;
-            color: #444;
-            font-size: 13.5px;
+            color: #3d3d3d;
+            font-size: 10pt;
+            margin-top: 1px;
         }
-        .proj-desc { color: #333; font-size: 13.5px; margin-top: 2px; }
-        .cert-entry { color: #333; font-size: 13.5px; }
+        .edu-gpa {
+            font-size: 9.5pt;
+            color: #555;
+            margin-top: 2px;
+        }
+
+        /* ── Projects ── */
+        .proj-entry { margin-bottom: 10px; }
+        .proj-entry:last-child { margin-bottom: 0; }
+        .proj-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .proj-name {
+            font-weight: 700;
+            font-size: 10.5pt;
+            color: #111;
+        }
+        .proj-date {
+            font-size: 9.5pt;
+            color: #555;
+            white-space: nowrap;
+        }
+        .proj-desc {
+            color: #2a2a2a;
+            font-size: 10.5pt;
+            margin-top: 2px;
+        }
+        .proj-link {
+            font-size: 9.5pt;
+            margin-top: 3px;
+        }
+        .proj-link a {
+            color: #1a3c6e;
+            text-decoration: none;
+        }
+        .proj-link a:hover { text-decoration: underline; }
+
+        /* ── Certifications ── */
+        .cert-entry {
+            color: #2a2a2a;
+            font-size: 10.5pt;
+            margin-bottom: 4px;
+            padding-left: 10px;
+            border-left: 2px solid #1a3c6e;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -197,7 +259,7 @@ with st.form("resume_form"):
         "🎓 Education",
         placeholder=(
             "BSc Computer Science, MIT (2016–2020)\n"
-            "- GPA: 3.9/4.0"
+            "GPA: 3.9/4.0"
         ),
         height=100,
     )
@@ -205,9 +267,9 @@ with st.form("resume_form"):
     projects = st.text_area(
         "🚀 Projects",
         placeholder=(
-            "AI Chatbot (2023)\n"
+            "AI Chatbot (2023) | github.com/you/ai-chatbot\n"
             "- Built with Python & OpenAI API, 500+ active users\n\n"
-            "E-Commerce Platform (2022)\n"
+            "E-Commerce Platform (2022) | github.com/you/ecommerce\n"
             "- Full-stack app with React & Node.js"
         ),
         height=120,
