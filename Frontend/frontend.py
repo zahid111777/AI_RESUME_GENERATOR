@@ -9,9 +9,7 @@ import io
 import traceback
 import streamlit as st
 import streamlit.components.v1 as components
-from xhtml2pdf import pisa
-from htmldocx import HtmlToDocx
-from docx import Document as DocxDocument
+from resume_export import build_pdf, build_docx
 from app import generate_resume
 
 # ── Font options ──────────────────────────────────────────────────────────────
@@ -463,6 +461,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ── Session state init ────────────────────────────────────────────────────────
+for _k in ("resume_html", "preview_html", "download_html", "pdf_bytes",
+           "docx_bytes", "fn", "generated"):
+    if _k not in st.session_state:
+        st.session_state[_k] = None
+if "generated" not in st.session_state:
+    st.session_state.generated = False
+
 # ── Header ───────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style='text-align:center; padding: 1rem 0 0.5rem 0;'>
@@ -627,50 +633,9 @@ html, body {{ background: #4a4e57; }}
 .cert-entry {{ font-size: 10.5pt; color: #2a2a2a; margin-bottom: 4px; }}
 """
 
-                # ── PDF CSS (no flexbox — xhtml2pdf uses floats) ─────
-                _pdf_css = f"""
-* {{ box-sizing: border-box; margin: 0; padding: 0; }}
-body {{ background: white; font-family: {_fnt_body}; font-size: 11pt; color: #1f1f1f; line-height: 1.45; }}
-.resume {{ display: block; width: 100%; }}
-.resume-header {{ text-align: center; margin-bottom: 14px; }}
-.resume-header h1 {{ font-size: 22pt; font-weight: bold; color: #1a3c6e; letter-spacing: 2px; text-transform: uppercase; font-family: {_fnt_heading}; border: none; }}
-.contact-bar {{ text-align: center; font-size: 9pt; color: #555; margin-top: 4px; }}
-.contact-bar a {{ color: #1a3c6e; text-decoration: none; }}
-.section {{ margin-bottom: 10px; }}
-.section-title {{ font-size: 8pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #1a3c6e; border-bottom: 1pt solid #1a3c6e; padding-bottom: 1px; margin-bottom: 6px; }}
-.skills-text {{ font-size: 10pt; color: #2a2a2a; }}
-.section p {{ color: #2a2a2a; margin: 0; }}
-.job {{ margin-bottom: 8px; overflow: hidden; }}
-.job-header {{ overflow: hidden; margin-bottom: 1px; }}
-.job-title {{ float: left; font-weight: bold; font-size: 10pt; color: #111; }}
-.job-date {{ float: right; font-size: 9pt; color: #555; }}
-.job-company {{ clear: both; font-style: italic; color: #3d3d3d; font-size: 9.5pt; margin-bottom: 2px; }}
-.job ul {{ margin: 2px 0 0 0; padding-left: 14px; }}
-.job li {{ margin-bottom: 2px; color: #222; font-size: 10pt; }}
-.edu-entry {{ margin-bottom: 7px; overflow: hidden; }}
-.edu-header {{ overflow: hidden; }}
-.edu-degree {{ float: left; font-weight: bold; font-size: 10pt; color: #111; }}
-.edu-date {{ float: right; font-size: 9pt; color: #555; }}
-.edu-subheader {{ clear: both; overflow: hidden; margin-top: 1px; }}
-.edu-school {{ float: left; font-style: italic; color: #3d3d3d; font-size: 9.5pt; }}
-.edu-gpa {{ float: right; font-size: 9pt; color: #1a3c6e; font-weight: bold; }}
-.proj-entry {{ margin-bottom: 7px; overflow: hidden; }}
-.proj-header {{ overflow: hidden; }}
-.proj-name {{ float: left; font-weight: bold; font-size: 10pt; color: #111; }}
-.proj-gh-link {{ font-size: 8pt; color: #1a3c6e; text-decoration: none; margin-left: 6px; }}
-.proj-date {{ float: right; font-size: 9pt; color: #555; }}
-.proj-name-group {{ float: left; }}
-.proj-desc {{ clear: both; color: #2a2a2a; font-size: 10pt; margin-top: 2px; }}
-.cert-entry {{ font-size: 10pt; color: #2a2a2a; margin-bottom: 3px; }}
-@page {{ size: A4; margin: 15mm 18mm; }}
-"""
-                status.write("✅ Resume generated!")
-                status.update(label="Done!", state="complete", expanded=False)
-                st.success("Resume generated successfully!")
-                st.divider()
+                _fn = name.strip().replace(' ', '_')
 
-                # ── Preview via iframe (Streamlit can't override CSS) ──
-                st.subheader("Your AI-Generated Resume")
+                # Build preview HTML
                 _preview_html = f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <style>{_screen_css}</style>
@@ -679,15 +644,9 @@ body {{ background: white; font-family: {_fnt_body}; font-size: 11pt; color: #1f
   {resume_html}
 </div>
 </body></html>"""
-                components.html(_preview_html, height=1300, scrolling=True)
 
-                # ── Downloads ─────────────────────────────────────────
-                st.divider()
-                st.markdown("##### ⬇️ Download Resume")
-                _fn = name.strip().replace(' ', '_')
-
-                # HTML
-                download_html = f"""<!DOCTYPE html>
+                # Build HTML download
+                _download_html = f"""<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8">
 <title>{name.strip()} – Resume</title>
@@ -702,55 +661,79 @@ body {{ background: white; font-family: {_fnt_body}; font-size: 11pt; color: #1f
 </style></head>
 <body><div class="resume-viewer">{resume_html}</div></body></html>"""
 
-                # PDF
-                _pdf_doc = f"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>{_pdf_css}</style>
-</head><body>
-{resume_html}
-</body></html>"""
+                # Build PDF bytes  (ReportLab — proper structured layout)
                 try:
-                    _pdf_buf = io.BytesIO()
-                    _status = pisa.CreatePDF(io.StringIO(_pdf_doc), dest=_pdf_buf)
-                    pdf_bytes = _pdf_buf.getvalue() if not _status.err else None
-                    if _status.err:
-                        st.warning("PDF had minor rendering issues. HTML download is pixel-perfect.")
-                except Exception as _e:
-                    pdf_bytes = None
-                    st.warning(f"PDF failed: {_e}")
+                    _pdf_bytes = build_pdf(resume_html, _fnt_heading, _fnt_body)
+                except Exception:
+                    _pdf_bytes = None
 
-                # DOCX
+                # Build DOCX bytes  (python-docx — real styled paragraphs)
                 try:
-                    _doc = DocxDocument()
-                    HtmlToDocx().add_html_to_document(resume_html, _doc)
-                    _dbuf = io.BytesIO(); _doc.save(_dbuf)
-                    docx_bytes = _dbuf.getvalue()
-                except Exception as _e:
-                    docx_bytes = None
-                    st.warning(f"DOCX failed: {_e}")
+                    _docx_bytes = build_docx(resume_html, _fnt_heading, _fnt_body)
+                except Exception:
+                    _docx_bytes = None
 
-                dcol1, dcol2, dcol3 = st.columns(3)
-                with dcol1:
-                    st.download_button("🌐 HTML", data=download_html,
-                        file_name=f"{_fn}_resume.html", mime="text/html",
-                        use_container_width=True,
-                        help="Open in browser → Ctrl+P → Save as PDF for best quality")
-                with dcol2:
-                    if pdf_bytes:
-                        st.download_button("📄 PDF", data=pdf_bytes,
-                            file_name=f"{_fn}_resume.pdf", mime="application/pdf",
-                            use_container_width=True)
-                    else:
-                        st.button("📄 PDF (unavailable)", disabled=True, use_container_width=True)
-                with dcol3:
-                    if docx_bytes:
-                        st.download_button("📝 Word (DOCX)", data=docx_bytes,
-                            file_name=f"{_fn}_resume.docx",
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                            use_container_width=True)
-                    else:
-                        st.button("📝 DOCX (unavailable)", disabled=True, use_container_width=True)
+                # ── Persist everything in session_state ───────────────
+                st.session_state.generated     = True
+                st.session_state.resume_html   = resume_html
+                st.session_state.preview_html  = _preview_html
+                st.session_state.download_html = _download_html
+                st.session_state.pdf_bytes     = _pdf_bytes
+                st.session_state.docx_bytes    = _docx_bytes
+                st.session_state.fn            = _fn
+
+                status.write("✅ Resume generated!")
+                status.update(label="Done!", state="complete", expanded=False)
+                st.success("✅ Resume generated! Scroll down to view and download.")
 
             except Exception as e:
                 st.error(f"Error generating resume: {e}")
                 st.code(traceback.format_exc(), language="python")
+
+# ── Display & Downloads (persists across all re-runs / button clicks) ─────────
+if st.session_state.generated:
+    st.divider()
+    st.subheader("Your AI-Generated Resume")
+    components.html(st.session_state.preview_html, height=1350, scrolling=True)
+
+    st.divider()
+    st.markdown("##### ⬇️ Download Resume")
+    _fn = st.session_state.fn
+
+    dcol1, dcol2, dcol3 = st.columns(3)
+    with dcol1:
+        st.download_button(
+            "🌐 HTML",
+            data=st.session_state.download_html,
+            file_name=f"{_fn}_resume.html",
+            mime="text/html",
+            use_container_width=True,
+            key="dl_html",
+            help="Open in browser → Ctrl+P → Save as PDF for best quality",
+        )
+    with dcol2:
+        if st.session_state.pdf_bytes:
+            st.download_button(
+                "📄 PDF",
+                data=st.session_state.pdf_bytes,
+                file_name=f"{_fn}_resume.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="dl_pdf",
+            )
+        else:
+            st.button("📄 PDF (unavailable)", disabled=True,
+                      use_container_width=True, key="dl_pdf_na")
+    with dcol3:
+        if st.session_state.docx_bytes:
+            st.download_button(
+                "📝 Word (DOCX)",
+                data=st.session_state.docx_bytes,
+                file_name=f"{_fn}_resume.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True,
+                key="dl_docx",
+            )
+        else:
+            st.button("📝 DOCX (unavailable)", disabled=True,
+                      use_container_width=True, key="dl_docx_na")
