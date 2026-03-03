@@ -5,9 +5,43 @@ from pathlib import Path
 # Allow importing from Backend/
 sys.path.append(str(Path(__file__).resolve().parent.parent / "Backend"))
 
+import io
 import traceback
 import streamlit as st
+import streamlit.components.v1 as components
+from xhtml2pdf import pisa
+from htmldocx import HtmlToDocx
+from docx import Document as DocxDocument
 from app import generate_resume
+
+# ── Font options ──────────────────────────────────────────────────────────────
+FONT_MAP = {
+    "🅜  Montserrat + Calibri  (Modern Bold — Default)": {
+        "import_css": "@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap');",
+        "heading": "'Montserrat', 'Candara', sans-serif",
+        "body":    "'Calibri', 'Candara', 'Segoe UI', Arial, sans-serif",
+    },
+    "🅒  Calibri  (Corporate Classic)": {
+        "import_css": "",
+        "heading": "'Calibri', 'Segoe UI', sans-serif",
+        "body":    "'Calibri', 'Segoe UI', Arial, sans-serif",
+    },
+    "🅒  Candara  (Stylish & Readable)": {
+        "import_css": "",
+        "heading": "'Candara', 'Segoe UI', sans-serif",
+        "body":    "'Candara', 'Segoe UI', Arial, sans-serif",
+    },
+    "🅖  Georgia  (Traditional Serif)": {
+        "import_css": "",
+        "heading": "'Georgia', 'Times New Roman', serif",
+        "body":    "'Georgia', serif",
+    },
+    "🅐  Arial  (Clean & Universal)": {
+        "import_css": "",
+        "heading": "Arial, 'Helvetica Neue', sans-serif",
+        "body":    "Arial, 'Helvetica Neue', sans-serif",
+    },
+}
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -20,6 +54,9 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+        /* ── MONTSERRAT FOR RESUME HEADING ── */
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap');
+
         /* ── PAGE BACKGROUND — Gen-Z gradient ── */
         [data-testid="stAppViewContainer"] {
             background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
@@ -189,40 +226,6 @@ st.markdown(
             gap: 18px;
         }
 
-        /* ════════════════════════════════════════════
-           A4 PAGE  (one per page)
-        ════════════════════════════════════════════ */
-        .resume-page {
-            background: #ffffff;
-            width: 210mm;
-            padding: 15mm 18mm 15mm 18mm;
-            font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
-            font-size: 11pt;
-            color: #1f1f1f;
-            line-height: 1.45;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.45);
-            box-sizing: border-box;
-        }
-
-        /* keep .resume as a hidden staging div */
-        .resume {
-            display: none;
-        }
-
-        /* ── Print: proper A4 pages ── */
-        @media print {
-            .resume-viewer { background: none; padding: 0; gap: 0; }
-            .resume-page {
-                width: 210mm;
-                min-height: 297mm;
-                padding: 15mm 18mm 15mm 18mm;
-                box-shadow: none;
-                page-break-after: always;
-                break-after: page;
-            }
-            @page { size: A4; margin: 0; }
-        }
-
         /* ── Name header ── */
         .resume-header {
             text-align: center;
@@ -230,27 +233,27 @@ st.markdown(
         }
         .resume-header h1 {
             font-size: 22pt !important;
-            font-weight: 700 !important;
+            font-weight: 800 !important;
             color: #1a3c6e !important;
             background: none !important;
             -webkit-background-clip: unset !important;
             -webkit-text-fill-color: #1a3c6e !important;
             margin: 0 !important;
             padding-bottom: 0 !important;
+            border: none !important;
             border-bottom: none !important;
-            letter-spacing: 2px !important;
+            letter-spacing: 2.5px !important;
             text-transform: uppercase !important;
             line-height: 1.15 !important;
-            font-family: 'Cambria', 'Georgia', serif !important;
+            font-family: 'Montserrat', 'Candara', 'Calibri', sans-serif !important;
         }
-        /* thin separator line BELOW contact bar, above sections */
         .resume-header .contact-bar {
-            padding-bottom: 10px;
-            border-bottom: 1.5px solid #c9d4e8;
+            padding-bottom: 0;
+            border-bottom: none;
             margin-bottom: 0;
         }
 
-        /* prevent Streamlit color bleeding into resume */
+        /* prevent Streamlit color bleeding into resume-page */
         .resume-page p, .resume-page li,
         .resume-page div, .resume-page span { color: inherit; }
 
@@ -532,6 +535,16 @@ with st.form("resume_form"):
         height=80,
     )
 
+    st.markdown("---")
+    st.markdown("##### 🎨 Resume Font")
+    font_choice = st.selectbox(
+        "Pick a font for your resume",
+        options=list(FONT_MAP.keys()),
+        index=0,
+        label_visibility="collapsed",
+        help="This affects the look of your downloaded resume",
+    )
+
     submitted = st.form_submit_button("✨ Generate Resume", use_container_width=True)
 
 # ── Generation ───────────────────────────────────────────────────────────────
@@ -558,183 +571,185 @@ if submitted:
                     projects=projects.strip(),
                     certifications=certifications.strip(),
                 )
-                status.write("✅ Resume generated!")
-                status.update(label="Done!", state="complete", expanded=False)
-                st.success("Resume generated successfully!")
-                st.divider()
 
-                # ── Display ──────────────────────────────────────────────
-                st.subheader("Your AI-Generated Resume")
-                st.markdown(
-                    f"""
-                    <div class="resume-viewer" id="resume-viewer">
-                      {resume_html}
-                    </div>
-                    <script>
-                    (function(){{
-                        var PX_PER_MM = 96 / 25.4;
-                        var PAGE_H_PX = Math.round(297 * PX_PER_MM);
-                        var PAD_V_PX  = Math.round(15 * 2 * PX_PER_MM);
-                        var AVAIL_H   = PAGE_H_PX - PAD_V_PX;
+                # ── Apply selected font ───────────────────────────────
+                _fnt         = FONT_MAP[font_choice]
+                _fnt_import  = _fnt["import_css"]
+                _fnt_heading = _fnt["heading"]
+                _fnt_body    = _fnt["body"]
 
-                        function createPage(viewer) {{
-                            var p = document.createElement('div');
-                            p.className = 'resume-page';
-                            viewer.appendChild(p);
-                            return p;
-                        }}
-
-                        function buildPages() {{
-                            var viewer = document.getElementById('resume-viewer');
-                            if (!viewer) return;
-                            var staging = viewer.querySelector('.resume');
-                            if (!staging) return;
-
-                            /* measure off-screen */
-                            staging.style.cssText = [
-                                'display:block!important',
-                                'visibility:hidden',
-                                'position:fixed',
-                                'top:-9999px',
-                                'left:-9999px',
-                                'width:210mm',
-                                'box-sizing:border-box'
-                            ].join(';');
-
-                            var blocks = Array.from(staging.children);
-                            var page   = createPage(viewer);
-
-                            blocks.forEach(function(block) {{
-                                var clone = block.cloneNode(true);
-                                page.appendChild(clone);
-                                if (page.scrollHeight > AVAIL_H && page.children.length > 1) {{
-                                    page.removeChild(clone);
-                                    page = createPage(viewer);
-                                    page.appendChild(clone);
-                                }}
-                            }});
-
-                            /* last page always fills full A4 */
-                            var pages = viewer.querySelectorAll('.resume-page');
-                            if (pages.length > 0) {{
-                                pages[pages.length - 1].style.minHeight = '297mm';
-                            }}
-
-                            staging.parentNode.removeChild(staging);
-                        }}
-
-                        if (document.readyState === 'loading') {{
-                            document.addEventListener('DOMContentLoaded', buildPages);
-                        }} else {{
-                            setTimeout(buildPages, 80);
-                        }}
-                    }})();
-                    </script>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-                # ── Download (full standalone HTML) ─────────────────────
-                st.divider()
-                download_html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{name.strip()} – Resume</title>
-<style>
+                # ── Shared screen CSS (flexbox OK here) ──────────────
+                _screen_css = f"""
+{_fnt_import}
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-body {{ background: #4a4e57; font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; }}
-.resume-viewer {{ padding: 24px 0; display: flex; flex-direction: column; align-items: center; gap: 18px; }}
-.resume-page {{
-    background: #fff; width: 210mm;
-    padding: 15mm 18mm 15mm 18mm;
-    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
-    font-size: 11pt; color: #1f1f1f; line-height: 1.45;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.45); box-sizing: border-box;
+html, body {{ background: #4a4e57; }}
+.resume-viewer {{ background: #4a4e57; padding: 28px 0; display: flex; flex-direction: column; align-items: center; gap: 0; }}
+.resume {{
+    background: #ffffff;
+    width: 210mm;
+    padding: 15mm 18mm;
+    font-family: {_fnt_body};
+    font-size: 11pt;
+    color: #1f1f1f;
+    line-height: 1.45;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.45);
+    box-sizing: border-box;
 }}
-.resume {{ display: none; }}
 .resume-header {{ text-align: center; margin-bottom: 14px; }}
-.resume-header h1 {{ font-size: 22pt; font-weight: 700; color: #1a3c6e; letter-spacing: 2px; text-transform: uppercase; font-family: 'Cambria', 'Georgia', serif; margin: 0; border-bottom: none; }}
-.resume-header .contact-bar {{ padding-bottom: 10px; border-bottom: 1.5px solid #c9d4e8; }}
-.contact-bar {{ text-align: center; font-size: 9.5pt; color: #555; margin-top: 4px; }}
+.resume-header h1 {{ font-size: 22pt; font-weight: 800; color: #1a3c6e; letter-spacing: 2.5px; text-transform: uppercase; font-family: {_fnt_heading}; margin: 0; border: none; background: none; -webkit-text-fill-color: #1a3c6e; }}
+.contact-bar {{ text-align: center; font-size: 9.5pt; color: #555; margin-top: 5px; }}
 .contact-bar a {{ color: #1a3c6e; text-decoration: none; margin: 0 8px; }}
 .section {{ margin-bottom: 11px; }}
 .section-title {{ font-size: 8.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #1a3c6e; border-bottom: 1.5px solid #1a3c6e; padding-bottom: 2px; margin-bottom: 7px; }}
-.skills-text {{ font-size: 10.5pt; line-height: 1.45; }}
+.skills-text {{ font-size: 10.5pt; line-height: 1.45; color: #2a2a2a; }}
+.section p {{ color: #2a2a2a; text-align: justify; margin: 0; }}
 .job {{ margin-bottom: 9px; }}
-.job-header {{ display: flex; justify-content: space-between; align-items: baseline; }}
+.job-header {{ display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1px; }}
 .job-title {{ font-weight: 700; font-size: 10.5pt; color: #111; }}
-.job-date {{ font-size: 9.5pt; color: #555; }}
+.job-date {{ font-size: 9.5pt; color: #555; white-space: nowrap; }}
 .job-company {{ font-style: italic; color: #3d3d3d; font-size: 10pt; margin-bottom: 3px; }}
 .job ul {{ margin: 3px 0 0 0; padding-left: 15px; }}
-.job li {{ margin-bottom: 2px; font-size: 10.5pt; color: #222; }}
+.job li {{ margin-bottom: 2px; color: #222; font-size: 10.5pt; }}
 .edu-entry {{ margin-bottom: 8px; }}
 .edu-header {{ display: flex; justify-content: space-between; align-items: baseline; }}
 .edu-degree {{ font-weight: 700; font-size: 10.5pt; color: #111; }}
-.edu-date {{ font-size: 9.5pt; color: #555; }}
+.edu-date {{ font-size: 9.5pt; color: #555; white-space: nowrap; margin-left: 12px; }}
 .edu-subheader {{ display: flex; justify-content: space-between; align-items: baseline; margin-top: 1px; }}
 .edu-school {{ font-style: italic; color: #3d3d3d; font-size: 10pt; }}
-.edu-gpa {{ font-size: 9.5pt; color: #1a3c6e; font-weight: 600; }}
+.edu-gpa {{ font-size: 9.5pt; color: #1a3c6e; font-weight: 600; margin-left: 12px; }}
 .proj-entry {{ margin-bottom: 8px; }}
 .proj-header {{ display: flex; justify-content: space-between; align-items: baseline; }}
 .proj-name-group {{ display: inline-flex; align-items: baseline; gap: 8px; }}
 .proj-name {{ font-weight: 700; font-size: 10.5pt; color: #111; }}
 .proj-gh-link {{ font-size: 8.5pt; color: #1a3c6e; text-decoration: none; font-weight: 500; }}
-.proj-date {{ font-size: 9.5pt; color: #555; }}
-.proj-desc {{ font-size: 10.5pt; color: #2a2a2a; margin-top: 2px; }}
+.proj-date {{ font-size: 9.5pt; color: #555; white-space: nowrap; }}
+.proj-desc {{ color: #2a2a2a; font-size: 10.5pt; margin-top: 2px; }}
 .cert-entry {{ font-size: 10.5pt; color: #2a2a2a; margin-bottom: 4px; }}
-.section p {{ color: #2a2a2a; text-align: justify; }}
-@media print {{
-    body {{ background: none; }}
-    .resume-viewer {{ padding: 0; gap: 0; }}
-    .resume-page {{ box-shadow: none; page-break-after: always; break-after: page; }}
-    @page {{ size: A4; margin: 0; }}
-}}
-</style>
-</head>
-<body>
-<div class="resume-viewer" id="resume-viewer">
-{resume_html}
+"""
+
+                # ── PDF CSS (no flexbox — xhtml2pdf uses floats) ─────
+                _pdf_css = f"""
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{ background: white; font-family: {_fnt_body}; font-size: 11pt; color: #1f1f1f; line-height: 1.45; }}
+.resume {{ display: block; width: 100%; }}
+.resume-header {{ text-align: center; margin-bottom: 14px; }}
+.resume-header h1 {{ font-size: 22pt; font-weight: bold; color: #1a3c6e; letter-spacing: 2px; text-transform: uppercase; font-family: {_fnt_heading}; border: none; }}
+.contact-bar {{ text-align: center; font-size: 9pt; color: #555; margin-top: 4px; }}
+.contact-bar a {{ color: #1a3c6e; text-decoration: none; }}
+.section {{ margin-bottom: 10px; }}
+.section-title {{ font-size: 8pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #1a3c6e; border-bottom: 1pt solid #1a3c6e; padding-bottom: 1px; margin-bottom: 6px; }}
+.skills-text {{ font-size: 10pt; color: #2a2a2a; }}
+.section p {{ color: #2a2a2a; margin: 0; }}
+.job {{ margin-bottom: 8px; overflow: hidden; }}
+.job-header {{ overflow: hidden; margin-bottom: 1px; }}
+.job-title {{ float: left; font-weight: bold; font-size: 10pt; color: #111; }}
+.job-date {{ float: right; font-size: 9pt; color: #555; }}
+.job-company {{ clear: both; font-style: italic; color: #3d3d3d; font-size: 9.5pt; margin-bottom: 2px; }}
+.job ul {{ margin: 2px 0 0 0; padding-left: 14px; }}
+.job li {{ margin-bottom: 2px; color: #222; font-size: 10pt; }}
+.edu-entry {{ margin-bottom: 7px; overflow: hidden; }}
+.edu-header {{ overflow: hidden; }}
+.edu-degree {{ float: left; font-weight: bold; font-size: 10pt; color: #111; }}
+.edu-date {{ float: right; font-size: 9pt; color: #555; }}
+.edu-subheader {{ clear: both; overflow: hidden; margin-top: 1px; }}
+.edu-school {{ float: left; font-style: italic; color: #3d3d3d; font-size: 9.5pt; }}
+.edu-gpa {{ float: right; font-size: 9pt; color: #1a3c6e; font-weight: bold; }}
+.proj-entry {{ margin-bottom: 7px; overflow: hidden; }}
+.proj-header {{ overflow: hidden; }}
+.proj-name {{ float: left; font-weight: bold; font-size: 10pt; color: #111; }}
+.proj-gh-link {{ font-size: 8pt; color: #1a3c6e; text-decoration: none; margin-left: 6px; }}
+.proj-date {{ float: right; font-size: 9pt; color: #555; }}
+.proj-name-group {{ float: left; }}
+.proj-desc {{ clear: both; color: #2a2a2a; font-size: 10pt; margin-top: 2px; }}
+.cert-entry {{ font-size: 10pt; color: #2a2a2a; margin-bottom: 3px; }}
+@page {{ size: A4; margin: 15mm 18mm; }}
+"""
+                status.write("✅ Resume generated!")
+                status.update(label="Done!", state="complete", expanded=False)
+                st.success("Resume generated successfully!")
+                st.divider()
+
+                # ── Preview via iframe (Streamlit can't override CSS) ──
+                st.subheader("Your AI-Generated Resume")
+                _preview_html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>{_screen_css}</style>
+</head><body>
+<div class="resume-viewer">
+  {resume_html}
 </div>
-<script>
-(function(){{
-    var PX_PER_MM = 96 / 25.4;
-    var PAGE_H_PX = Math.round(297 * PX_PER_MM);
-    var PAD_V_PX  = Math.round(15 * 2 * PX_PER_MM);
-    var AVAIL_H   = PAGE_H_PX - PAD_V_PX;
-    function createPage(v) {{ var p = document.createElement('div'); p.className = 'resume-page'; v.appendChild(p); return p; }}
-    function buildPages() {{
-        var viewer  = document.getElementById('resume-viewer');
-        var staging = viewer && viewer.querySelector('.resume');
-        if (!staging) return;
-        staging.style.cssText = 'display:block!important;visibility:hidden;position:fixed;top:-9999px;left:-9999px;width:210mm;';
-        var blocks = Array.from(staging.children);
-        var page   = createPage(viewer);
-        blocks.forEach(function(b) {{
-            var c = b.cloneNode(true);
-            page.appendChild(c);
-            if (page.scrollHeight > AVAIL_H && page.children.length > 1) {{
-                page.removeChild(c); page = createPage(viewer); page.appendChild(c);
-            }}
-        }});
-        /* last page always fills a full A4 sheet */
-        var pages = viewer.querySelectorAll('.resume-page');
-        if (pages.length > 0) pages[pages.length - 1].style.minHeight = '297mm';
-        staging.parentNode.removeChild(staging);
-    }}
-    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', buildPages) : setTimeout(buildPages, 80);
-}})();
-</script>
-</body>
-</html>"""
-                st.download_button(
-                    label="⬇️ Download Resume (.html)",
-                    data=download_html,
-                    file_name=f"{name.strip().replace(' ', '_')}_resume.html",
-                    mime="text/html",
-                    use_container_width=True,
-                )
+</body></html>"""
+                components.html(_preview_html, height=1300, scrolling=True)
+
+                # ── Downloads ─────────────────────────────────────────
+                st.divider()
+                st.markdown("##### ⬇️ Download Resume")
+                _fn = name.strip().replace(' ', '_')
+
+                # HTML
+                download_html = f"""<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>{name.strip()} – Resume</title>
+<style>
+{_screen_css}
+@media print {{
+  body, html {{ background: none; }}
+  .resume-viewer {{ background: none; padding: 0; }}
+  .resume {{ box-shadow: none; width: 210mm; min-height: 297mm; }}
+  @page {{ size: A4; margin: 0; }}
+}}
+</style></head>
+<body><div class="resume-viewer">{resume_html}</div></body></html>"""
+
+                # PDF
+                _pdf_doc = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>{_pdf_css}</style>
+</head><body>
+{resume_html}
+</body></html>"""
+                try:
+                    _pdf_buf = io.BytesIO()
+                    _status = pisa.CreatePDF(io.StringIO(_pdf_doc), dest=_pdf_buf)
+                    pdf_bytes = _pdf_buf.getvalue() if not _status.err else None
+                    if _status.err:
+                        st.warning("PDF had minor rendering issues. HTML download is pixel-perfect.")
+                except Exception as _e:
+                    pdf_bytes = None
+                    st.warning(f"PDF failed: {_e}")
+
+                # DOCX
+                try:
+                    _doc = DocxDocument()
+                    HtmlToDocx().add_html_to_document(resume_html, _doc)
+                    _dbuf = io.BytesIO(); _doc.save(_dbuf)
+                    docx_bytes = _dbuf.getvalue()
+                except Exception as _e:
+                    docx_bytes = None
+                    st.warning(f"DOCX failed: {_e}")
+
+                dcol1, dcol2, dcol3 = st.columns(3)
+                with dcol1:
+                    st.download_button("🌐 HTML", data=download_html,
+                        file_name=f"{_fn}_resume.html", mime="text/html",
+                        use_container_width=True,
+                        help="Open in browser → Ctrl+P → Save as PDF for best quality")
+                with dcol2:
+                    if pdf_bytes:
+                        st.download_button("📄 PDF", data=pdf_bytes,
+                            file_name=f"{_fn}_resume.pdf", mime="application/pdf",
+                            use_container_width=True)
+                    else:
+                        st.button("📄 PDF (unavailable)", disabled=True, use_container_width=True)
+                with dcol3:
+                    if docx_bytes:
+                        st.download_button("📝 Word (DOCX)", data=docx_bytes,
+                            file_name=f"{_fn}_resume.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            use_container_width=True)
+                    else:
+                        st.button("📝 DOCX (unavailable)", disabled=True, use_container_width=True)
 
             except Exception as e:
                 st.error(f"Error generating resume: {e}")
