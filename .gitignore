@@ -1,4 +1,10 @@
-*venv
+venv/
+__pycache__/
 *.pyc
-*keys
+*.pyo
+*.pyd
+.Python
 keys/.env
+.env
+*.env
+.DS_Store
