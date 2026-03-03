@@ -27,10 +27,16 @@ RESUME_PROMPT = ChatPromptTemplate.from_messages(
             (
                 "You are an elite professional resume writer. "
                 "Output ONLY a raw HTML snippet (no <html>, <head>, or <body> tags). "
-                "Use this exact structure:\n\n"
+                "Use this exact structure — skip a section entirely if no data is provided for it:\n\n"
                 "<div class='resume'>\n"
                 "  <div class='resume-header'>\n"
-                "    <h1>{{Full Name}}</h1>\n"
+                "    <h1>CANDIDATE NAME</h1>\n"
+                "    <div class='contact-bar'>\n"
+                "      <!-- include only provided: email | github | linkedin as plain text spans -->\n"
+                "      <span>email@example.com</span>\n"
+                "      <a href='https://github.com/...'>github.com/...</a>\n"
+                "      <a href='https://linkedin.com/...'>linkedin.com/in/...</a>\n"
+                "    </div>\n"
                 "  </div>\n"
                 "  <div class='section'>\n"
                 "    <div class='section-title'>Professional Summary</div>\n"
@@ -38,34 +44,55 @@ RESUME_PROMPT = ChatPromptTemplate.from_messages(
                 "  </div>\n"
                 "  <div class='section'>\n"
                 "    <div class='section-title'>Core Competencies</div>\n"
-                "    <div class='skills-grid'>\n"
-                "      <span class='skill-tag'>Skill</span> ...\n"
-                "    </div>\n"
+                "    <div class='skills-text'>Python, JavaScript, React, ...</div>\n"
                 "  </div>\n"
                 "  <div class='section'>\n"
                 "    <div class='section-title'>Professional Experience</div>\n"
                 "    <div class='job'>\n"
                 "      <div class='job-header'><span class='job-title'>Title</span><span class='job-date'>Year–Year</span></div>\n"
-                "      <div class='job-company'>Company Name</div>\n"
-                "      <ul><li>Achievement bullet starting with action verb...</li></ul>\n"
+                "      <div class='job-company'>Company</div>\n"
+                "      <ul><li>Achievement starting with action verb.</li></ul>\n"
                 "    </div>\n"
+                "  </div>\n"
+                "  <div class='section'>\n"
+                "    <div class='section-title'>Education</div>\n"
+                "    <div class='edu-entry'>\n"
+                "      <div class='edu-header'><span class='edu-degree'>Degree, Major</span><span class='edu-date'>Year–Year</span></div>\n"
+                "      <div class='edu-school'>University Name</div>\n"
+                "    </div>\n"
+                "  </div>\n"
+                "  <div class='section'>\n"
+                "    <div class='section-title'>Projects</div>\n"
+                "    <div class='proj-entry'>\n"
+                "      <div class='proj-header'><span class='proj-name'>Project Name</span><span class='proj-date'>Year</span></div>\n"
+                "      <div class='proj-desc'>Short impactful description.</div>\n"
+                "    </div>\n"
+                "  </div>\n"
+                "  <div class='section'>\n"
+                "    <div class='section-title'>Certifications</div>\n"
+                "    <div class='cert-entry'>Certification Name – Issuer, Year</div>\n"
                 "  </div>\n"
                 "</div>\n\n"
                 "Rules:\n"
-                "1. Output ONLY the HTML snippet — zero extra text, no markdown, no code fences.\n"
-                "2. Every bullet must start with a strong action verb.\n"
-                "3. Quantify achievements wherever possible (%, numbers, time saved).\n"
-                "4. Do NOT invent facts — only elaborate naturally on what the user provides.\n"
-                "5. Do NOT use tables."
+                "1. Output ONLY the HTML snippet — no markdown, no code fences, no extra text.\n"
+                "2. Every experience bullet must start with a strong action verb.\n"
+                "3. Quantify achievements wherever possible.\n"
+                "4. Do NOT invent facts — only elaborate on what the user provides.\n"
+                "5. Do NOT use tables anywhere."
             ),
         ),
         (
             "human",
             (
-                "Create a professional resume for:\n\n"
-                "Name: {name}\n\n"
+                "Name: {name}\n"
+                "Email: {email}\n"
+                "GitHub: {github}\n"
+                "LinkedIn: {linkedin}\n\n"
                 "Skills:\n{skills}\n\n"
                 "Experience:\n{experience}\n\n"
+                "Education:\n{education}\n\n"
+                "Projects:\n{projects}\n\n"
+                "Certifications:\n{certifications}\n\n"
                 "Return only the HTML snippet."
             ),
         ),
@@ -73,22 +100,30 @@ RESUME_PROMPT = ChatPromptTemplate.from_messages(
 )
 
 # ── Public function called by the frontend ───────────────────────────────────
-def generate_resume(name: str, skills: str, experience: str) -> str:
-    """
-    Generate a professional resume using LangChain + OpenAI.
-
-    Parameters
-    ----------
-    name       : Full name of the candidate.
-    skills     : Comma-separated or free-text list of skills.
-    experience : Work experience description (free text).
-
-    Returns
-    -------
-    A Markdown-formatted resume string.
-    """
+def generate_resume(
+    name: str,
+    skills: str,
+    experience: str,
+    email: str = "",
+    github: str = "",
+    linkedin: str = "",
+    education: str = "",
+    projects: str = "",
+    certifications: str = "",
+) -> str:
+    """Generate a professional HTML resume using LangChain + OpenAI."""
     chain = RESUME_PROMPT | llm
     response = chain.invoke(
-        {"name": name, "skills": skills, "experience": experience}
+        {
+            "name": name,
+            "email": email or "N/A",
+            "github": github or "N/A",
+            "linkedin": linkedin or "N/A",
+            "skills": skills,
+            "experience": experience,
+            "education": education or "N/A",
+            "projects": projects or "N/A",
+            "certifications": certifications or "N/A",
+        }
     )
     return response.content
