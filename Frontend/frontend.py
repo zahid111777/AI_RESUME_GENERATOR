@@ -19,46 +19,163 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        .block-container { padding-top: 2rem; }
-        .stTextArea textarea { font-size: 14px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        /* ── Resume paper (A4) ── */
+        /* ── PAGE BACKGROUND — Gen-Z gradient ── */
+        [data-testid="stAppViewContainer"] {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+        }
+        [data-testid="stHeader"] { background: transparent; }
+        .block-container {
+            padding-top: 2rem;
+            max-width: 860px;
+        }
+
+        /* ── APP TITLE (Streamlit native title only) ── */
+        [data-testid="stAppViewContainer"] > section > div > div > div > div h1 {
+            background: linear-gradient(90deg, #a78bfa, #ec4899, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 2.4rem !important;
+            font-weight: 800 !important;
+            letter-spacing: -0.5px;
+        }
+
+        /* ── FORM CARD — glassmorphism ── */
+        [data-testid="stForm"] {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+        }
+
+        /* ── LABELS ── */
+        label { color: #e2d9f3 !important; font-family: 'Inter', sans-serif !important; font-size: 0.88rem !important; font-weight: 500 !important; }
+
+        /* ── INPUTS & TEXTAREAS ── */
+        [data-testid="stTextInput"] input,
+        [data-testid="stTextArea"] textarea {
+            background: #1a1a2e !important;
+            border: 1px solid rgba(167,139,250,0.45) !important;
+            border-radius: 10px !important;
+            color: #ffffff !important;
+            caret-color: #a78bfa !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.9rem !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        [data-testid="stTextInput"] input:focus,
+        [data-testid="stTextArea"] textarea:focus {
+            border-color: #a78bfa !important;
+            box-shadow: 0 0 0 3px rgba(167,139,250,0.25) !important;
+        }
+        [data-testid="stTextInput"] input::placeholder,
+        [data-testid="stTextArea"] textarea::placeholder { color: #6b5fa0 !important; }
+
+        /* ── SECTION HEADINGS inside form ── */
+        [data-testid="stForm"] h5 {
+            color: #a78bfa !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.8rem !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.3rem !important;
+        }
+
+        /* ── DIVIDER ── */
+        hr { border-color: rgba(167,139,250,0.2) !important; }
+
+        /* ── GENERATE BUTTON ── */
+        [data-testid="stFormSubmitButton"] button {
+            background: linear-gradient(90deg, #7c3aed, #db2777) !important;
+            color: #fff !important;
+            border: none !important;
+            border-radius: 12px !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 1rem !important;
+            font-weight: 700 !important;
+            padding: 0.65rem 1.5rem !important;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 20px rgba(124,58,237,0.45) !important;
+            transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+        }
+        [data-testid="stFormSubmitButton"] button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 28px rgba(219,39,119,0.5) !important;
+        }
+
+        /* ── DOWNLOAD BUTTON ── */
+        [data-testid="stDownloadButton"] button {
+            background: linear-gradient(90deg, #0ea5e9, #6366f1) !important;
+            color: #fff !important;
+            border: none !important;
+            border-radius: 12px !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.95rem !important;
+            font-weight: 600 !important;
+            box-shadow: 0 4px 18px rgba(99,102,241,0.4) !important;
+        }
+
+        /* ── SUCCESS / ERROR banners ── */
+        [data-testid="stAlert"] {
+            border-radius: 12px !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        /* ════════════════════════════════════════════
+           A4 RESUME PAPER
+        ════════════════════════════════════════════ */
         .resume {
             background: #ffffff;
             width: 210mm;
             min-height: 297mm;
             margin: 0 auto;
-            padding: 16mm 18mm 18mm 18mm;
-            font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 10.5pt;
+            padding: 12mm 16mm 14mm 16mm;
+            font-family: 'Arial', sans-serif;
+            font-size: 10pt;
             color: #1f1f1f;
-            line-height: 1.55;
+            line-height: 1.4;
             border: 1px solid #d6dbe2;
-            box-shadow: 0 6px 32px rgba(0,0,0,0.11);
+            box-shadow: 0 6px 32px rgba(0,0,0,0.18);
             box-sizing: border-box;
         }
 
         /* ── Name header ── */
         .resume-header {
             text-align: center;
-            padding-bottom: 12px;
-            margin-bottom: 18px;
-            border-bottom: 2.5px solid #1a3c6e;
+            padding-bottom: 10px;
+            margin-bottom: 14px;
+            border-bottom: 2px solid #1a3c6e;
         }
         .resume-header h1 {
-            font-size: 26pt;
-            font-weight: 700;
-            color: #1a3c6e;
-            margin: 0 0 6px 0;
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-            line-height: 1.1;
+            font-size: 24pt !important;
+            font-weight: 700 !important;
+            color: #1a3c6e !important;
+            background: none !important;
+            -webkit-background-clip: unset !important;
+            -webkit-text-fill-color: #1a3c6e !important;
+            margin: 0 0 4px 0 !important;
+            letter-spacing: 2.5px !important;
+            text-transform: uppercase !important;
+            line-height: 1.1 !important;
+            font-family: 'Calibri', 'Arial', sans-serif !important;
+        }
+
+        /* prevent Streamlit p color bleeding into resume */
+        .resume p, .resume li, .resume div, .resume span {
+            color: inherit;
         }
 
         /* ── Contact bar ── */
         .contact-bar {
             text-align: center;
-            font-size: 9.5pt;
+            font-size: 9pt;
             color: #555;
             margin-top: 4px;
             letter-spacing: 0.3px;
@@ -66,29 +183,47 @@ st.markdown(
         .contact-bar a {
             color: #1a3c6e;
             text-decoration: none;
+            margin: 0 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
         .contact-bar a:hover { text-decoration: underline; }
-        .contact-bar span { color: #555; }
-        /* dot separator between contact items */
-        .contact-bar > *:not(:last-child)::after {
-            content: " ·";
-            color: #999;
-            margin: 0 6px 0 0;
+        .contact-bar .email-link::before {
+            content: '';
+            display: inline-block;
+            width: 13px; height: 13px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231a3c6e'%3E%3Cpath d='M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z'/%3E%3C/svg%3E") center/contain no-repeat;
+            vertical-align: middle;
+        }
+        .contact-bar .github-link::before {
+            content: '';
+            display: inline-block;
+            width: 13px; height: 13px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%231a3c6e'%3E%3Cpath d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z'/%3E%3C/svg%3E") center/contain no-repeat;
+            vertical-align: middle;
+        }
+        .contact-bar .linkedin-link::before {
+            content: '';
+            display: inline-block;
+            width: 13px; height: 13px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231a3c6e'%3E%3Cpath d='M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z'/%3E%3C/svg%3E") center/contain no-repeat;
+            vertical-align: middle;
         }
 
         /* ── Sections ── */
         .section {
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
         .section-title {
-            font-size: 8.5pt;
+            font-size: 8pt;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 2.2px;
+            letter-spacing: 2px;
             color: #1a3c6e;
             border-bottom: 1.5px solid #1a3c6e;
-            padding-bottom: 3px;
-            margin-bottom: 8px;
+            padding-bottom: 2px;
+            margin-bottom: 6px;
         }
 
         /* ── Summary ── */
@@ -101,12 +236,12 @@ st.markdown(
         /* ── Skills ── */
         .skills-text {
             color: #2a2a2a;
-            font-size: 10.5pt;
-            line-height: 1.6;
+            font-size: 10pt;
+            line-height: 1.4;
         }
 
         /* ── Job entries ── */
-        .job { margin-bottom: 12px; }
+        .job { margin-bottom: 8px; }
         .job:last-child { margin-bottom: 0; }
         .job-header {
             display: flex;
@@ -116,11 +251,11 @@ st.markdown(
         }
         .job-title {
             font-weight: 700;
-            font-size: 10.5pt;
+            font-size: 10pt;
             color: #111;
         }
         .job-date {
-            font-size: 9.5pt;
+            font-size: 9pt;
             color: #555;
             white-space: nowrap;
             font-style: normal;
@@ -128,21 +263,21 @@ st.markdown(
         .job-company {
             font-style: italic;
             color: #3d3d3d;
-            margin-bottom: 4px;
-            font-size: 10pt;
+            margin-bottom: 2px;
+            font-size: 9.5pt;
         }
         .job ul {
-            margin: 4px 0 0 0;
-            padding-left: 16px;
+            margin: 2px 0 0 0;
+            padding-left: 14px;
         }
         .job li {
-            margin-bottom: 3px;
+            margin-bottom: 2px;
             color: #222;
-            font-size: 10.5pt;
+            font-size: 10pt;
         }
 
         /* ── Education ── */
-        .edu-entry { margin-bottom: 10px; }
+        .edu-entry { margin-bottom: 7px; }
         .edu-entry:last-child { margin-bottom: 0; }
         .edu-header {
             display: flex;
@@ -151,66 +286,87 @@ st.markdown(
         }
         .edu-degree {
             font-weight: 700;
-            font-size: 10.5pt;
+            font-size: 10pt;
             color: #111;
         }
         .edu-date {
-            font-size: 9.5pt;
+            font-size: 9pt;
             color: #555;
             white-space: nowrap;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+        .edu-subheader {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 1px;
         }
         .edu-school {
             font-style: italic;
             color: #3d3d3d;
-            font-size: 10pt;
-            margin-top: 1px;
+            font-size: 9.5pt;
         }
         .edu-gpa {
-            font-size: 9.5pt;
-            color: #555;
-            margin-top: 2px;
+            font-size: 9pt;
+            color: #1a3c6e;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-left: 12px;
         }
 
         /* ── Projects ── */
-        .proj-entry { margin-bottom: 10px; }
+        .proj-entry { margin-bottom: 7px; }
         .proj-entry:last-child { margin-bottom: 0; }
         .proj-header {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
         }
+        .proj-name-group {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 8px;
+        }
         .proj-name {
             font-weight: 700;
-            font-size: 10.5pt;
+            font-size: 10pt;
             color: #111;
         }
+        .proj-gh-link {
+            font-size: 8.5pt;
+            color: #1a3c6e;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .proj-gh-link::before {
+            content: '';
+            display: inline-block;
+            width: 10px; height: 10px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%231a3c6e'%3E%3Cpath d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z'/%3E%3C/svg%3E") center/contain no-repeat;
+            vertical-align: middle;
+        }
+        .proj-gh-link:hover { text-decoration: underline; }
         .proj-date {
-            font-size: 9.5pt;
+            font-size: 9pt;
             color: #555;
             white-space: nowrap;
         }
         .proj-desc {
             color: #2a2a2a;
-            font-size: 10.5pt;
-            margin-top: 2px;
+            font-size: 10pt;
+            margin-top: 1px;
         }
-        .proj-link {
-            font-size: 9.5pt;
-            margin-top: 3px;
-        }
-        .proj-link a {
-            color: #1a3c6e;
-            text-decoration: none;
-        }
-        .proj-link a:hover { text-decoration: underline; }
 
         /* ── Certifications ── */
         .cert-entry {
             color: #2a2a2a;
-            font-size: 10.5pt;
-            margin-bottom: 4px;
-            padding-left: 10px;
-            border-left: 2px solid #1a3c6e;
+            font-size: 10pt;
+            margin-bottom: 3px;
         }
     </style>
     """,
@@ -218,8 +374,13 @@ st.markdown(
 )
 
 # ── Header ───────────────────────────────────────────────────────────────────
-st.title("📄 AI Resume Generator")
-st.markdown("Paste your details below and let AI craft a professional resume for you.")
+st.markdown("""
+<div style='text-align:center; padding: 1rem 0 0.5rem 0;'>
+    <div style='font-size:3rem; margin-bottom:0.3rem;'>✦</div>
+    <h1 style='font-size:2.4rem; font-weight:800; background:linear-gradient(90deg,#a78bfa,#ec4899,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent; margin:0;'>AI Resume Generator</h1>
+    <p style='color:#c4b5fd; margin-top:0.5rem; font-size:1rem;'>Drop your details — get a pro resume in seconds ✨</p>
+</div>
+""", unsafe_allow_html=True)
 st.divider()
 
 # ── Input form ───────────────────────────────────────────────────────────────
@@ -259,7 +420,7 @@ with st.form("resume_form"):
         "🎓 Education",
         placeholder=(
             "BSc Computer Science, MIT (2016–2020)\n"
-            "GPA: 3.9/4.0"
+            "CGPA: 3.9/4.0"
         ),
         height=100,
     )
