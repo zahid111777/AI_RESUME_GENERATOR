@@ -1,6 +1,6 @@
 # AI Resume Generator
 
-An AI-powered application that helps users generate and export professional resumes.
+AI-powered resume generator - Automatically create professional resumes using LLMs and prompt engineering
 
 ## Project Structure
 
